@@ -8,20 +8,20 @@
 ################################################################################
 ################################################################################
 
-################################################################################
-# Parse arguments
-################################################################################
-
 if (!suppressPackageStartupMessages(require("optparse"))) {
   install.packages("optparse", repos = "http://cran.rstudio.com/")
 }
 
-split_vector_callback <- function(option, opt, value, parser) {
-  strsplit(value, ",")[[1]]
+if (!suppressPackageStartupMessages(require("gaston"))) {
+  install.packages("gaston", repos = "http://cran.rstudio.com/")
 }
-split_double_vector_callback <- function(option, opt, value, parser) {
-  split1 <- strsplit(value, ";")[[1]]
-  strsplit(split1, ",")
+
+################################################################################
+# Parse arguments
+################################################################################
+
+split_vector <- function(v) {
+  strsplit(v, ",")[[1]]
 }
 
 reflow_opt <- function(...) {
@@ -43,23 +43,29 @@ option_list <- list(
     "--seed",
     type = "integer",
     help = "Random seed for reproducibility",
-    defaul = 1
+    default = 1
   ),
   make_option(
     "--n_snps_rand",
     type = "integer",
     help = "Number of SNPs modeled as a random effect",
-    defaul = 1e3
+    default = 1e3
   ),
   make_option(
     "--n_snps_fixed",
     type = "integer",
     help = "Number of SNPs modeled as a fixed effect",
-    defaul = 2
+    default = 2
+  ),
+  make_option(
+    "--n_populations",
+    type = "integer",
+    help = "Number of sub-populations with distinct allele frequencies",
+    default = 2
   ),
   make_option(
     "--rand_snp_freq",
-    type = "numeric",
+    type = "character",
     help = reflow_opt(
       "Frequency for SNPs modeled as random effects.",
       "If comma-separated list, frequency in each sub-population."
@@ -73,7 +79,6 @@ option_list <- list(
       "Frequency for SNPs modeled as fixed effects.",
       "If comma-separated list, frequency in each sub-population."
     ),
-    callback = split_vector_callback,
     default = "0.8,0.2"
   ),
   make_option(
@@ -83,13 +88,11 @@ option_list <- list(
       "Number of samples. If comma-separated list,",
       "number of samples in each sub-population."
     ),
-    callback = split_vector_callback,
     default = "1500,500"
   ),
   make_option(
     "--beta_fixed",
     type = "character",
-    callback = split_vector_callback,
     help = reflow_opt(
       "Comma-separated list of beta values for the fixed effect SNPs.",
       "Must be of length equal to 'n_snps_fixed'"
@@ -139,7 +142,6 @@ option_list <- list(
   make_option(
     "--beta_qcov",
     type = "character",
-    callback = split_vector_callback,
     help = reflow_opt(
       "Beta for the quantitative covariate.",
       "If comma-separated list, beta for each of the quantitative",
@@ -150,7 +152,6 @@ option_list <- list(
   make_option(
     "--mean_qcov",
     type = "character",
-    callback = split_vector_callback,
     help = reflow_opt(
       "Mean for the quantitative covariate.",
       "If comma-separated list, mean for each of the quantitative",
@@ -161,7 +162,6 @@ option_list <- list(
   make_option(
     "--sd_qcov",
     type = "character",
-    callback = split_vector_callback,
     help = reflow_opt(
       "Standard deviation for the quantitative covariate.",
       "If comma-separated list, standard deviation for each of the",
@@ -178,7 +178,6 @@ option_list <- list(
   make_option(
     "--n_levels_cov",
     type = "character",
-    callback = split_vector_callback,
     help = reflow_opt(
       "Number of levels for the covariate.",
       "If comma-separated list, number of levels for each of the",
@@ -190,15 +189,14 @@ option_list <- list(
   make_option(
     "--beta_cov",
     type = "character",
-    callback = split_double_vector_callback,
     help = reflow_opt(
       "Beta for each level of the covariate. Comma-separated list with one",
-      "value for each level of the covariate - 1 (dummy encoding is used).",
-      "If multiple covariates are present, a semicolon must separate",
-      "the beta for the levels of each covariate."
+      "value for each level of the covariate - 1 (dummy encoding is used),",
+      "with betas for the levels of multiple covariates given sequentially.",
+      "Must be of length equal to the sum of (n_levels - 1) for each covariate."
     ),
-    default = "3,-5",
-    meta = "beta_cov1_lev1,beta_cov1_lev2;beta_cov2_lev1,beta_cov2_lev2"
+    default = "3,5",
+    meta = "beta_cov1_lev1,beta_cov1_lev2,beta_cov2_lev1,beta_cov2_lev2"
   ),
   make_option(
     "--out",
@@ -241,50 +239,88 @@ opt <- parse_args(
 
 set.seed(opt[["seed"]])
 
+n_snps_rand <- opt[["n_snps_rand"]]
+n_snps_fixed <- opt[["n_snps_fixed"]]
+n_populations <- opt[["n_populations"]]
+rand_snp_freq <- as.numeric(split_vector(opt[["rand_snp_freq"]]))
+fixed_snp_freq <- as.numeric(split_vector(opt[["fixed_snp_freq"]]))
+n_samples <- as.integer(split_vector(opt[["n_samples"]]))
+b <- as.numeric(split_vector(opt[["beta_fixed"]]))
+a <- opt[["intercept"]]
+ploidy <- opt[["ploidy"]]
+h2 <- opt[["heritability"]]
+var_scale <- opt[["variance_scale"]]
+n_qcov <- opt[["n_qcov"]]
+beta_qcov <- as.numeric(split_vector(opt[["beta_qcov"]]))
+mean_qcov <- as.numeric(split_vector(opt[["mean_qcov"]]))
+sd_qcov <- as.numeric(split_vector(opt[["sd_qcov"]]))
+n_cov <- opt[["n_cov"]]
+n_levels_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
+beta_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
+out <- opt[["out"]]
+
+################################################################################
+# Checks
+################################################################################
+
+stopifnot(n_populations == length(rand_snp_freq))
+stopifnot(n_populations == length(fixed_snp_freq))
+stopifnot(n_populations == length(n_samples))
+stopifnot(n_snps_fixed == length(b))
+stopifnot(n_qcov == length(beta_qcov))
+stopifnot(n_qcov == length(mean_qcov))
+stopifnot(n_qcov == length(sd_qcov))
+stopifnot(n_cov == length(n_levels_cov))
+stopifnot(sum(n_levels_cov) - n_cov == length(beta_cov))
+stopifnot(sum(n_levels_cov) - n_cov == length(beta_cov))
 
 #################################################################################
 ## Compute values
 #################################################################################
-#
-# n_samples <- sum(as.numeric(n_samples_l))
-# n_snps_fixed <- length(b)
-#
-# var_g <- h2 * var_scale
-# var_e <- (1 - h2) * var_scale
-#
-# make_chromosome <- function(maf_l) {
-#  ret <- numeric(0)
-#  for (pop_idx in 1:length(maf_l)) {
-#    maf <- maf_l[[pop_idx]]
-#    curr_n_samples <- n_samples_l[[pop_idx]]
-#    X <- sapply(
-#      maf,
-#      function(curr_maf) {
-#        rbinom(size = ploidy, prob = curr_maf, n = curr_n_samples)
-#      }
-#    )
-#    ret <- rbind(ret, X)
-#  }
-#  return(ret)
-# }
-#
-# message("Generating random effects SNPs")
-# Z <- make_chromosome(maf_rand)
-# stopifnot(dim(Z) == c(n_samples, n_snps_rand))
-#
-# message("Generating fixed effects SNPs")
-# X <- make_chromosome(maf_fixed)
-# stopifnot(dim(X) == c(n_samples, n_snps_fixed))
-#
-# message("Computing relatedness matrix")
-# Z.std <- scale(Z)
-# K <- (Z.std %*% t(Z.std)) / n_snps_rand
-# stopifnot(dim(K) == c(n_samples, n_samples))
-#
-# message("Building phenotype")
-# u <- rnorm(n_snps_rand, mean = 0, sd = sqrt(var_g / n_snps_rand))
-# g <- Z.std %*% u
-# e <- rnorm(n = n_samples, mean = 0, sd = sqrt(var_e))
+
+n_samples_tot <- sum(n_samples)
+var_g <- h2 * var_scale
+var_e <- (1 - h2) * var_scale
+
+make_chromosome <- function(p, n) {
+  ret <- numeric(0)
+  for (pop_idx in 1:n_populations) {
+    curr_p <- p[[pop_idx]]
+    curr_n_samples <- n_samples[[pop_idx]]
+    mat <- replicate(
+      expr = rbinom(size = ploidy, prob = curr_p, n = curr_n_samples),
+      n = n
+    )
+    ret <- rbind(ret, mat)
+  }
+  return(ret)
+}
+
+
+message("Generating random effects SNPs")
+Z <- make_chromosome(rand_snp_freq, n_snps_rand)
+stopifnot(dim(Z) == c(n_samples_tot, n_snps_rand))
+
+message("Generating fixed effects SNPs")
+X <- make_chromosome(fixed_snp_freq, n_snps_fixed)
+stopifnot(dim(X) == c(n_samples_tot, n_snps_fixed))
+
+message("Scaling random effect SNPs")
+Z.std <- scale(Z)
+
+message("Computing relatedness matrix")
+K <- (Z.std %*% t(Z.std)) / n_snps_rand
+stopifnot(dim(K) == c(n_samples_tot, n_samples_tot))
+
+message("Building random effect")
+u <- rnorm(n_snps_rand, mean = 0, sd = sqrt(var_g / n_snps_rand))
+g <- Z.std %*% u
+stopifnot(dim(g) == c(n_samples_tot, 1))
+
+message("Building error vector")
+e <- matrix(rnorm(n = n_samples_tot, mean = 0, sd = sqrt(var_e)), ncol = 1)
+stopifnot(dim(e) == c(n_samples_tot, 1))
+
 # qcov1 <- matrix(rnorm(n = n_samples, mean = qcov1_mean, sd = qcov1_sd), ncol = 1)
 # cov1_f <- as.factor(
 #  sample(0:length(cov1_b), size = n_samples, replace = TRUE)
@@ -294,38 +330,49 @@ set.seed(opt[["seed"]])
 #  sample(0:length(cov2_b), size = n_samples, replace = TRUE)
 # )
 # cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
-# y <- a + X %*% b + qcov1 %*% qcov1_b + cov1 %*% cov1_b + cov2 %*% cov2_b + g + e
+
+message("Building phenotype")
+y <- a + X %*% b + g + e
+stopifnot(dim(y) == c(n_samples_tot, 1))
+
+message("Estimating variance components...")
+intercept_col <- matrix(rep(1, n_samples_tot), ncol = 1)
+C <- cbind(intercept_col)
+gaston_res <- gaston::lmm.aireml(Y = y, X = C, K = K)
+s2e_reml <- gaston_res[["sigma2"]]
+s2g_reml <- gaston_res[["tau"]]
+h2_reml <- s2g_reml / (s2e_reml + s2g_reml)
+message("\n*** It is important that the following estimates are accurate ***")
+message("h2 realised: ", h2_reml, " true: ", h2)
+message("Genetic variance realised: ", s2g_reml, " true: ", var_g)
+message("Residual variance realised: ", s2e_reml, " true: ", var_e)
+message("***\n")
 #
-# intercept <- matrix(rep(1, n_samples), ncol = 1)
-# C <- cbind(intercept, qcov1, cov1, cov2)
-#
-# message("Estimating heritability")
-# gaston_res <- gaston::lmm.aireml(Y = y, X = C, K = K)
-# s2e_reml <- gaston_res$sigma2
-# s2g_reml <- gaston_res$tau
-# h2_reml <- s2g_reml / (s2e_reml + s2g_reml)
-# message("h2 realised: ", h2_reml, " true: ", h2)
-# message("Genetic variance realised: ", s2g_reml, " true: ", var_g)
-# message("Residual variance realised: ", s2e_reml, " true: ", var_e)
-#
-# message("Decorrelating")
-# V <- K * s2g_reml + s2e_reml * diag(1, dim(K))
-# L <- t(chol(V))
-# X_mm <- forwardsolve(L, X)
-# C_mm <- forwardsolve(L, C)
-# y_mm <- forwardsolve(L, y)
-#
-# message("Fitting LMM")
-# fit <- lm(y_mm ~ 0 + X_mm + C_mm)
-# a_est <- coef(fit)[[2]]
+message("Decorrelating")
+V <- K * s2g_reml + s2e_reml * diag(1, dim(K))
+L <- t(chol(V))
+X_mm <- forwardsolve(L, X)
+C_mm <- forwardsolve(L, C)
+y_mm <- forwardsolve(L, y)
+
+
+# message("Fitting mixed model")
+# fit <- lm(y_mm ~ 0 + C_mm + X_mm)
+# a_est <- coef(fit)[[1]]
 # b_est <- coef(fit)[[1]]
+# message("\n*** It is important that the following estimates are accurate ***")
 # message("Intercept estimated: ", a_est, " true: ", a)
 # message("Slope estimated: ", b_est, " true: ", b)
-#
-# message("Fitting LM")
+# message("\n*** ***")
+##
+# message("Fitting linear model")
 # fit_linear <- lm(y ~ 0 + X + C)
 # a_est_linear <- coef(fit_linear)[[2]]
 # b_est_linear <- coef(fit_linear)[[1]]
+# message(
+#  "\n*** The following estimate will probably be off if there ",
+#  "is population structure ***"
+# )
 # message("Intercept estimated: ", a_est_linear, " true: ", a)
 # message("Slope estimated: ", b_est_linear, " true: ", b)
 #
