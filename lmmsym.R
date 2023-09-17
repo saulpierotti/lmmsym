@@ -351,12 +351,12 @@ stopifnot(dim(qcov) == c(n_samples_tot, n_qcov))
 # cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
 
 message("Building phenotype")
-y <- a + X %*% b + g + e
+y <- a + X %*% b + qcov %*% beta_qcov + g + e
 stopifnot(dim(y) == c(n_samples_tot, 1))
 
 message("Estimating variance components...")
 intercept_col <- matrix(rep(1, n_samples_tot), ncol = 1)
-C <- cbind(intercept_col)
+C <- cbind(intercept_col, qcov)
 gaston_res <- gaston::lmm.aireml(Y = y, X = C, K = K, verbose = FALSE)
 s2e_reml <- gaston_res[["sigma2"]]
 s2g_reml <- gaston_res[["tau"]]
