@@ -332,18 +332,25 @@ message("Building error vector")
 e <- matrix(rnorm(n = n_samples_tot, mean = 0, sd = sqrt(var_e)), ncol = 1)
 stopifnot(dim(e) == c(n_samples_tot, 1))
 
-qcov <-
-  # qcov1 <- matrix(rnorm(n = n_samples, mean = qcov1_mean, sd = qcov1_sd), ncol = 1)
-  # cov1_f <- as.factor(
-  #  sample(0:length(cov1_b), size = n_samples, replace = TRUE)
-  # )
-  # cov1 <- model.matrix(~cov1_f)[, 2:length(levels(cov1_f))]
-  # cov2_f <- as.factor(
-  #  sample(0:length(cov2_b), size = n_samples, replace = TRUE)
-  # )
-  # cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
+message("Building covariates")
+qcov <- sapply(
+  1:n_qcov,
+  function(i) {
+    rnorm(n = n_samples_tot, mean = mean_qcov[[i]], sd = sd_qcov[[i]])
+  }
+)
+stopifnot(dim(qcov) == c(n_samples_tot, n_qcov))
 
-  message("Building phenotype")
+# cov1_f <- as.factor(
+#  sample(0:length(cov1_b), size = n_samples, replace = TRUE)
+# )
+# cov1 <- model.matrix(~cov1_f)[, 2:length(levels(cov1_f))]
+# cov2_f <- as.factor(
+#  sample(0:length(cov2_b), size = n_samples, replace = TRUE)
+# )
+# cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
+
+message("Building phenotype")
 y <- a + X %*% b + g + e
 stopifnot(dim(y) == c(n_samples_tot, 1))
 
