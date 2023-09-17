@@ -208,22 +208,25 @@ option_list <- list(
 
 banner <- paste(
   "\nlmmsym: a simple simulator for GWAS data with population structure",
-  "\nAuthor: Saul Pierotti\n\n",
+  "Author: Saul Pierotti\n",
   sep = "\n"
 )
 
-description <- reflow_desc(
-  "A simple simulator for gwas data. It simulates a population",
-  "composed of sub-populations, which differ in terms of allele",
-  "frequencies. Two chromosomes are created, one called 'rand'",
-  "and one called 'fixed'. The idea is that 'rand' contains SNPs",
-  "modeled as random effects while 'fixed' SNPs modeled as fixed",
-  "effects. If you want to test a scenario where a mixed model works",
-  "well but a linear model fails, try to specify very different allele",
-  "frequencies for the random and fixed effects in the sub-populations.",
-  "Note that some combinations may yield data which is very hard to",
-  "model, so always check that the modelling done by the script itself",
-  "is accurate before using the synthetic data to test other tools."
+description <- paste0(
+  "\n",
+  reflow_desc(
+    "A simple simulator for gwas data. It simulates a population",
+    "composed of sub-populations, which differ in terms of allele",
+    "frequencies. Two chromosomes are created, one called 'rand'",
+    "and one called 'fixed'. The idea is that 'rand' contains SNPs",
+    "modeled as random effects while 'fixed' SNPs modeled as fixed",
+    "effects. If you want to test a scenario where a mixed model works",
+    "well but a linear model fails, try to specify very different allele",
+    "frequencies for the random and fixed effects in the sub-populations.",
+    "Note that some combinations may yield data which is very hard to",
+    "model, so always check that the modelling done by the script itself",
+    "is accurate before using the synthetic data to test other tools."
+  )
 )
 
 opt <- parse_args(
@@ -259,10 +262,18 @@ n_levels_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
 beta_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
 out <- opt[["out"]]
 
+message(banner)
+message("*** Parameters ***")
+for (param in names(opt)) {
+  message(param, " = ", opt[[param]])
+}
+message("***\n")
+
 ################################################################################
 # Checks
 ################################################################################
 
+message("Validating parameters")
 stopifnot(n_populations == length(rand_snp_freq))
 stopifnot(n_populations == length(fixed_snp_freq))
 stopifnot(n_populations == length(n_samples))
@@ -321,24 +332,25 @@ message("Building error vector")
 e <- matrix(rnorm(n = n_samples_tot, mean = 0, sd = sqrt(var_e)), ncol = 1)
 stopifnot(dim(e) == c(n_samples_tot, 1))
 
-# qcov1 <- matrix(rnorm(n = n_samples, mean = qcov1_mean, sd = qcov1_sd), ncol = 1)
-# cov1_f <- as.factor(
-#  sample(0:length(cov1_b), size = n_samples, replace = TRUE)
-# )
-# cov1 <- model.matrix(~cov1_f)[, 2:length(levels(cov1_f))]
-# cov2_f <- as.factor(
-#  sample(0:length(cov2_b), size = n_samples, replace = TRUE)
-# )
-# cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
+qcov <-
+  # qcov1 <- matrix(rnorm(n = n_samples, mean = qcov1_mean, sd = qcov1_sd), ncol = 1)
+  # cov1_f <- as.factor(
+  #  sample(0:length(cov1_b), size = n_samples, replace = TRUE)
+  # )
+  # cov1 <- model.matrix(~cov1_f)[, 2:length(levels(cov1_f))]
+  # cov2_f <- as.factor(
+  #  sample(0:length(cov2_b), size = n_samples, replace = TRUE)
+  # )
+  # cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
 
-message("Building phenotype")
+  message("Building phenotype")
 y <- a + X %*% b + g + e
 stopifnot(dim(y) == c(n_samples_tot, 1))
 
 message("Estimating variance components...")
 intercept_col <- matrix(rep(1, n_samples_tot), ncol = 1)
 C <- cbind(intercept_col)
-gaston_res <- gaston::lmm.aireml(Y = y, X = C, K = K)
+gaston_res <- gaston::lmm.aireml(Y = y, X = C, K = K, verbose = FALSE)
 s2e_reml <- gaston_res[["sigma2"]]
 s2g_reml <- gaston_res[["tau"]]
 h2_reml <- s2g_reml / (s2e_reml + s2g_reml)
