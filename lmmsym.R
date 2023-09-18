@@ -173,7 +173,7 @@ option_list <- list(
     "--n_cov",
     type = "numeric",
     help = "Number of covariates",
-    default = 1
+    default = 2
   ),
   make_option(
     "--n_levels_cov",
@@ -184,7 +184,7 @@ option_list <- list(
       "covariates. Must be of length 'n_cov'. Each covariate must have",
       "> 1 level"
     ),
-    default = 2
+    default = "2,3"
   ),
   make_option(
     "--beta_cov",
@@ -195,7 +195,7 @@ option_list <- list(
       "with betas for the levels of multiple covariates given sequentially.",
       "Must be of length equal to the sum of (n_levels - 1) for each covariate."
     ),
-    default = "3,5",
+    default = "3,5,2",
     meta = "beta_cov1_lev1,beta_cov1_lev2,beta_cov2_lev1,beta_cov2_lev2"
   ),
   make_option(
@@ -248,8 +248,8 @@ n_populations <- opt[["n_populations"]]
 rand_snp_freq <- as.numeric(split_vector(opt[["rand_snp_freq"]]))
 fixed_snp_freq <- as.numeric(split_vector(opt[["fixed_snp_freq"]]))
 n_samples <- as.integer(split_vector(opt[["n_samples"]]))
-b <- as.numeric(split_vector(opt[["beta_fixed"]]))
-a <- opt[["intercept"]]
+beta_fixed <- as.numeric(split_vector(opt[["beta_fixed"]]))
+intercept <- opt[["intercept"]]
 ploidy <- opt[["ploidy"]]
 h2 <- opt[["heritability"]]
 var_scale <- opt[["variance_scale"]]
@@ -259,7 +259,7 @@ mean_qcov <- as.numeric(split_vector(opt[["mean_qcov"]]))
 sd_qcov <- as.numeric(split_vector(opt[["sd_qcov"]]))
 n_cov <- opt[["n_cov"]]
 n_levels_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
-beta_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
+beta_cov <- as.integer(split_vector(opt[["beta_cov"]]))
 out <- opt[["out"]]
 
 message(banner)
@@ -277,7 +277,7 @@ message("Validating parameters")
 stopifnot(n_populations == length(rand_snp_freq))
 stopifnot(n_populations == length(fixed_snp_freq))
 stopifnot(n_populations == length(n_samples))
-stopifnot(n_snps_fixed == length(b))
+stopifnot(n_snps_fixed == length(beta_fixed))
 stopifnot(n_qcov == length(beta_qcov))
 stopifnot(n_qcov == length(mean_qcov))
 stopifnot(n_qcov == length(sd_qcov))
@@ -333,38 +333,62 @@ e <- matrix(rnorm(n = n_samples_tot, mean = 0, sd = sqrt(var_e)), ncol = 1)
 stopifnot(dim(e) == c(n_samples_tot, 1))
 
 message("Building covariates")
-qcov <- sapply(
+qcov_m <- sapply(
   1:n_qcov,
   function(i) {
     rnorm(n = n_samples_tot, mean = mean_qcov[[i]], sd = sd_qcov[[i]])
   }
 )
-stopifnot(dim(qcov) == c(n_samples_tot, n_qcov))
+stopifnot(dim(qcov_m) == c(n_samples_tot, n_qcov))
 
-# cov1_f <- as.factor(
-#  sample(0:length(cov1_b), size = n_samples, replace = TRUE)
-# )
-# cov1 <- model.matrix(~cov1_f)[, 2:length(levels(cov1_f))]
-# cov2_f <- as.factor(
-#  sample(0:length(cov2_b), size = n_samples, replace = TRUE)
-# )
-# cov2 <- model.matrix(~cov2_f)[, 2:length(levels(cov2_f))]
+cov_l <- lapply(
+  1:n_cov,
+  function(i) {
+    n_lev <- n_levels_cov[[i]]
+    m <- t(rmultinom(n = n_samples_tot, size = 1, prob = rep(1 / n_lev, n_lev)))
+    # drop first level since modeled from intercept (dummy encoding)
+    m[, 2:n_lev]
+  }
+)
+cov_m <- do.call("cbind", cov_l)
+stopifnot(dim(cov_m) == c(n_samples_tot, sum(n_levels_cov) - n_cov))
+
+message("Building final design matrix")
+intercept_col <- rep(1, n_samples_tot)
+X <- cbind(intercept_col, X, qcov_m, cov_m)
+stopifnot(
+  dim(X) == c(
+    n_samples_tot,
+    1 + n_snps_fixed + n_qcov + sum(n_levels_cov) - n_cov
+  )
+)
+
+# null design matrix for variance estimation
+X_null <- cbind(intercept_col, qcov_m, cov_m)
+stopifnot(
+  dim(X_null) == c(
+    n_samples_tot,
+    1 + n_qcov + sum(n_levels_cov) - n_cov
+  )
+)
+
+message("Building fixed effects vector")
+b <- c(intercept, beta_fixed, beta_qcov, beta_cov)
+stopifnot(length(b) == 1 + n_snps_fixed + n_qcov + sum(n_levels_cov) - n_cov)
 
 message("Building phenotype")
-y <- a + X %*% b + qcov %*% beta_qcov + g + e
+y <- X %*% b + g + e
 stopifnot(dim(y) == c(n_samples_tot, 1))
 
 message("Estimating variance components...")
-intercept_col <- matrix(rep(1, n_samples_tot), ncol = 1)
-C <- cbind(intercept_col, qcov)
-gaston_res <- gaston::lmm.aireml(Y = y, X = C, K = K, verbose = FALSE)
+gaston_res <- gaston::lmm.aireml(Y = y, X = X_null, K = K, verbose = FALSE)
 s2e_reml <- gaston_res[["sigma2"]]
 s2g_reml <- gaston_res[["tau"]]
 h2_reml <- s2g_reml / (s2e_reml + s2g_reml)
 message("\n*** It is important that the following estimates are accurate ***")
-message("h2 realised: ", h2_reml, " true: ", h2)
-message("Genetic variance realised: ", s2g_reml, " true: ", var_g)
-message("Residual variance realised: ", s2e_reml, " true: ", var_e)
+message("h2 realised: ", round(h2_reml, 2), " true: ", h2)
+message("Genetic variance realised: ", round(s2g_reml, 2), " true: ", var_g)
+message("Residual variance realised: ", round(s2e_reml, 2), " true: ", var_e)
 message("***\n")
 #
 message("Decorrelating")
