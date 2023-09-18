@@ -434,8 +434,9 @@ fit <- lm(y_mm ~ 0 + X_mm)
 intercept_est <- coef(fit)[["X_mmintercept"]]
 beta_fixed_est <- coef(fit)[sprintf("X_mm%s", snp_names)]
 message("\n*** It is important that the following estimates are accurate ***")
+message("Mixed model")
 message("Intercept estimated: ", intercept_est, " true: ", intercept)
-for (i in 1:length(snp_names)) {
+for (i in seq_along(snp_names)) {
   message(
     "Slope estimated SNP ", i, ": ",
     beta_fixed_est[[i]], " true: ", beta_fixed[[i]]
@@ -449,8 +450,9 @@ fit <- lm(y ~ 0 + X)
 intercept_est <- coef(fit)[["Xintercept"]]
 beta_fixed_est <- coef(fit)[sprintf("X%s", snp_names)]
 message("\n*** These estimates are expected to be inaccurate ***")
+message("Linear model")
 message("Intercept estimated: ", intercept_est, " true: ", intercept)
-for (i in 1:length(snp_names)) {
+for (i in seq_along(snp_names)) {
   message(
     "Slope estimated SNP ", i, ": ",
     beta_fixed_est[[i]], " true: ", beta_fixed[[i]]
