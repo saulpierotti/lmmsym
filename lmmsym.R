@@ -284,6 +284,7 @@ stopifnot(n_qcov == length(sd_qcov))
 stopifnot(n_cov == length(n_levels_cov))
 stopifnot(sum(n_levels_cov) - n_cov == length(beta_cov))
 stopifnot(sum(n_levels_cov) - n_cov == length(beta_cov))
+stopifnot(all(n_levels_cov > 1))
 
 #################################################################################
 ## Compute values
@@ -356,6 +357,32 @@ stopifnot(dim(cov_m) == c(n_samples_tot, sum(n_levels_cov) - n_cov))
 message("Building final design matrix")
 intercept_col <- rep(1, n_samples_tot)
 X <- cbind(intercept_col, X, qcov_m, cov_m)
+snp_names <- sapply(
+  1:n_snps_fixed,
+  function(i) {
+    sprintf("snp%s", i)
+  }
+)
+qcov_names <- sapply(
+  1:n_qcov,
+  function(i) {
+    sprintf("qcov%s", i)
+  }
+)
+cov_names_l <- lapply(
+  1:n_cov,
+  function(i) {
+    sapply(
+      2:n_levels_cov[[i]],
+      function(l_i, i) {
+        sprintf("cov%sl%s", i, l_i)
+      },
+      i = i
+    )
+  }
+)
+cov_names <- unlist(cov_names_l)
+colnames(X) <- c("intercept", snp_names, qcov_names, cov_names)
 stopifnot(
   dim(X) == c(
     n_samples_tot,
@@ -381,6 +408,9 @@ y <- X %*% b + g + e
 stopifnot(dim(y) == c(n_samples_tot, 1))
 
 message("Estimating variance components...")
+# here the right thing to do would be to set X = X, but I use X = X_null to
+# mimic what would be done in a normal GWAS, where the heritability is
+# estimated without taking the fixed-effect SNPs into account
 gaston_res <- gaston::lmm.aireml(Y = y, X = X_null, K = K, verbose = FALSE)
 s2e_reml <- gaston_res[["sigma2"]]
 s2g_reml <- gaston_res[["tau"]]
@@ -395,30 +425,39 @@ message("Decorrelating")
 V <- K * s2g_reml + s2e_reml * diag(1, dim(K))
 L <- t(chol(V))
 X_mm <- forwardsolve(L, X)
-C_mm <- forwardsolve(L, C)
 y_mm <- forwardsolve(L, y)
+colnames(X_mm) <- colnames(X)
 
+message("Fitting mixed model")
+fit <- lm(y_mm ~ 0 + X_mm)
 
-# message("Fitting mixed model")
-# fit <- lm(y_mm ~ 0 + C_mm + X_mm)
-# a_est <- coef(fit)[[1]]
-# b_est <- coef(fit)[[1]]
-# message("\n*** It is important that the following estimates are accurate ***")
-# message("Intercept estimated: ", a_est, " true: ", a)
-# message("Slope estimated: ", b_est, " true: ", b)
-# message("\n*** ***")
-##
-# message("Fitting linear model")
-# fit_linear <- lm(y ~ 0 + X + C)
-# a_est_linear <- coef(fit_linear)[[2]]
-# b_est_linear <- coef(fit_linear)[[1]]
-# message(
-#  "\n*** The following estimate will probably be off if there ",
-#  "is population structure ***"
-# )
-# message("Intercept estimated: ", a_est_linear, " true: ", a)
-# message("Slope estimated: ", b_est_linear, " true: ", b)
-#
+intercept_est <- coef(fit)[["X_mmintercept"]]
+beta_fixed_est <- coef(fit)[sprintf("X_mm%s", snp_names)]
+message("\n*** It is important that the following estimates are accurate ***")
+message("Intercept estimated: ", intercept_est, " true: ", intercept)
+for (i in 1:length(snp_names)) {
+  message(
+    "Slope estimated SNP ", i, ": ",
+    beta_fixed_est[[i]], " true: ", beta_fixed[[i]]
+  )
+}
+message("***\n")
+
+message("Fitting linear model")
+fit <- lm(y ~ 0 + X)
+
+intercept_est <- coef(fit)[["Xintercept"]]
+beta_fixed_est <- coef(fit)[sprintf("X%s", snp_names)]
+message("\n*** These estimates are expected to be inaccurate ***")
+message("Intercept estimated: ", intercept_est, " true: ", intercept)
+for (i in 1:length(snp_names)) {
+  message(
+    "Slope estimated SNP ", i, ": ",
+    beta_fixed_est[[i]], " true: ", beta_fixed[[i]]
+  )
+}
+message("***\n")
+
 #################################################################################
 ## Save output
 #################################################################################
