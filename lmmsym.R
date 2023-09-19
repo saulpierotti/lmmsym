@@ -226,7 +226,7 @@ option_list <- list(
 )
 
 banner <- paste(
-  "\nlmmsym: a simple simulator for GWAS data with population structure",
+  "\nlmmsym v0.1.0: a simple simulator for GWAS data with population structure",
   "Author: Saul Pierotti\n",
   sep = "\n"
 )
