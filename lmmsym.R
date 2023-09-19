@@ -551,7 +551,7 @@ pheno <- data.frame(
   simulated_pheno = y
 )
 write.table(
-  pheno, sprintf("%s.symlmm.pheno", out),
+  pheno, sprintf("%s.lmmsym.pheno", out),
   row.names = FALSE, quote = FALSE
 )
 
@@ -574,7 +574,7 @@ covar <- data.frame(
   IID = sample_names, cov_f
 )
 write.table(
-  covar, sprintf("%s.symlmm.covar", out),
+  covar, sprintf("%s.lmmsym.covar", out),
   row.names = FALSE, quote = FALSE
 )
 
@@ -582,6 +582,6 @@ message("Saving quantitative covariate file")
 colnames(qcov_m) <- sprintf("qcov%s", 1:n_qcov)
 qcovar <- data.frame(IID = sample_names, qcov_m)
 write.table(
-  qcovar, sprintf("%s.symlmm.qcovar", out),
+  qcovar, sprintf("%s.lmmsym.qcovar", out),
   row.names = FALSE, quote = FALSE
 )
