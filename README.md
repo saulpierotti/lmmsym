@@ -6,7 +6,7 @@ The intended use of this script is to test linear mixed models implementations f
 If the linear mixed model works properly, it should be able to correctly reconstruct the effect sizes of the fixed effect SNPs and the simulated random effect heritability.
 The output is produced in the form of a vcf file for the genotype, and plink-style files for the phenotype and covariates.
 
-## Usage
+## Usage
 
 Navigate to the root of the repository, make the script executable and just run it
 
