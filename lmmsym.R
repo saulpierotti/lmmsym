@@ -16,6 +16,25 @@ if (!suppressPackageStartupMessages(require("gaston"))) {
   install.packages("gaston", repos = "http://cran.rstudio.com/")
 }
 
+if (!suppressPackageStartupMessages(require("ComplexHeatmap"))) {
+  if (!require("BiocManager")) {
+    install.packages("BiocManager", repos = "http://cran.rstudio.com/")
+  }
+  BiocManager::install("ComplexHeatmap")
+}
+
+if (!suppressPackageStartupMessages(require("circlize"))) {
+  install.packages("circlize", repos = "http://cran.rstudio.com/")
+}
+
+if (!suppressPackageStartupMessages(require("magick"))) {
+  install.packages("magick", repos = "http://cran.rstudio.com/")
+}
+
+if (!suppressPackageStartupMessages(require("vcfR"))) {
+  install.packages("vcfR", repos = "http://cran.rstudio.com/")
+}
+
 ################################################################################
 # Parse arguments
 ################################################################################
@@ -460,135 +479,106 @@ for (i in seq_along(snp_names)) {
 }
 message("***\n")
 
-#################################################################################
-## Save output
-#################################################################################
-#
-# res <- list(
-#  seed = seed,
-#  n_snps_rand = n_snps_rand,
-#  n_snps_fixed = n_snps_fixed,
-#  maf_rand = maf_rand,
-#  maf_fixed = maf_fixed,
-#  n_samples_l = n_samples_l,
-#  n_samples = n_samples,
-#  b = b,
-#  a = a,
-#  cov1_b - cov1_b,
-#  cov2_b = cov2_b,
-#  qcov1_b = qcov1_b,
-#  qcov1_mean = qcov1_mean,
-#  qcov1_sd = qcov1_sd,
-#  ploidy = ploidy,
-#  h2 = h2,
-#  var_scale = var_scale,
-#  var_g = var_g,
-#  var_e = var_e,
-#  K = K,
-#  Z = Z,
-#  X = X,
-#  C = C,
-#  Z.std = Z.std,
-#  u = u,
-#  g = g,
-#  y = y,
-#  gaston_res = gaston_res,
-#  V = V,
-#  L = L,
-#  X_mm = X_mm,
-#  y_mm = y_mm,
-#  C_mm = C_mm,
-#  fit = fit,
-#  a_est = a_est,
-#  b_est = b_est,
-#  fit_linear = fit_linear,
-#  a_est_linear = a_est_linear,
-#  b_est_linear = b_est_linear
-# )
-#
-# message("Saving R objects")
-# saveRDS(res, sprintf("%s.lmmsym.rds", now))
-#
-# if (require(ComplexHeatmap) & require(circlize)) {
-#  message("Saving relatedness matrix heatmap")
-#  png(sprintf("%s.lmmsym.relatedness_matrix.png", now))
-#  K.clust <- hclust(as.dist(-K))
-#  ComplexHeatmap::Heatmap(
-#    unname(K),
-#    cluster_rows = K.clust,
-#    cluster_columns = K.clust,
-#    col = circlize::colorRamp2(c(min(K), mean(K), max(K)), c("blue", "white", "red")),
-#    show_row_dend = FALSE,
-#    show_column_dend = FALSE,
-#    heatmap_legend_param = list(title = "Relatedness"),
-#    use_raster = TRUE
-#  )
-#  dev.off()
-# } else {
-#  message("ComplexHeatmap and circlize packages not detetcted. Install them if ypu want to plot an heatmap of the relatedness matrix.")
-# }
-#
-# sample_names <- sprintf("sample_%s", 1:n_samples)
-#
-# message("Saving VCF of the genotypes")
-# if (require(vcfR)) {
-#  make_fix_line <- function(pos, chr) {
-#    c(chr, pos, NA, "A", "T", NA, "PASS", "")
-#  }
-#  fix_rand <- t(sapply(1:n_snps_rand, make_fix_line, chr = "rand"))
-#  fix_fixed <- t(sapply(1:n_snps_fixed, make_fix_line, chr = "fixed"))
-#  fix <- rbind(fix_rand, fix_fixed)
-#  colnames(fix) <- c(
-#    "CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"
-#  )
-#
-#  make_gt <- function(X) {
-#    gt <- X
-#    gt[X == 0] <- "0/0"
-#    gt[X == 1] <- "0/1"
-#    gt[X == 2] <- "1/1"
-#    return(gt)
-#  }
-#
-#  gt <- t(cbind(make_gt(Z), make_gt(X)))
-#  gt <- cbind("GT", gt)
-#  colnames(gt) <- c("FORMAT", sample_names)
-#
-#  vcf_obj <- new(
-#    "vcfR",
-#    meta = c(
-#      "##fileformat=VCFv4.0",
-#      "##FILTER=<ID=PASS,Description=\"All filters passed\">",
-#      "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Hard coded genotype\">",
-#      "##contig=<ID=rand>",
-#      "##contig=<ID=fixed>",
-#      sprintf("##synthetic genetic data created by lmmsym on %s", now)
-#    ),
-#    fix = fix,
-#    gt = gt
-#  )
-#
-#  write.vcf(vcf_obj, sprintf("%s.lmmsym.vcf.gz", now))
-# }
-#
-# message("Saving phenotype file")
-# pheno <- data.frame(
-#  IID = sample_names,
-#  simulated_pheno = y
-# )
-# write.table(pheno, sprintf("%s.symlmm.pheno", now), row.names = FALSE, quote = FALSE)
-#
-# message("Saving covariate file")
-# covar <- data.frame(
-#  IID = sample_names,
-#  cov1 = cov1_f,
-#  cov2 = cov2_f
-# )
-# write.table(covar, sprintf("%s.symlmm.covar", now), row.names = FALSE, quote = FALSE)
-#
-# message("Saving quantitative covariate file")
-# qcovar <- data.frame(
-#  IID = sample_names,
-#  qcov1 = qcov1
-# )
-# write.table(qcovar, sprintf("%s.symlmm.qcovar", now), row.names = FALSE, quote = FALSE)
+###############################################################################
+# Save output
+###############################################################################
+
+message("Saving relatedness matrix heatmap")
+ret <- png(sprintf("%s.lmmsym.relatedness_matrix.png", out))
+K.clust <- hclust(as.dist(-K))
+ComplexHeatmap::Heatmap(
+  unname(K),
+  cluster_rows = K.clust,
+  cluster_columns = K.clust,
+  col = circlize::colorRamp2(
+    c(min(K), mean(K), max(K)), c("blue", "white", "red")
+  ),
+  show_row_dend = FALSE,
+  show_column_dend = FALSE,
+  heatmap_legend_param = list(title = "Relatedness"),
+  use_raster = TRUE
+)
+ret <- dev.off()
+
+
+message("Saving VCF of the genotypes")
+sample_names <- sprintf("sample_%s", 1:n_samples_tot)
+
+make_fix_line <- function(pos, chr) {
+  c(chr, pos, NA, "A", "T", NA, "PASS", "")
+}
+fix_line_rand <- t(sapply(1:n_snps_rand, make_fix_line, chr = "rand"))
+fix_line_fixed <- t(sapply(1:n_snps_fixed, make_fix_line, chr = "fixed"))
+fix <- rbind(fix_line_rand, fix_line_fixed)
+colnames(fix) <- c(
+  "CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"
+)
+
+make_gt <- function(dosage_mat) {
+  gt <- matrix(
+    data = character(1), ncol = ncol(dosage_mat), nrow = nrow(dosage_mat)
+  )
+  gt[dosage_mat == 0] <- "0/0"
+  gt[dosage_mat == 1] <- "0/1"
+  gt[dosage_mat == 2] <- "1/1"
+  return(gt)
+}
+gt <- t(cbind(make_gt(Z), make_gt(X)))
+gt <- cbind("GT", gt)
+colnames(gt) <- c("FORMAT", sample_names)
+
+vcf_obj <- new(
+  vcfR::.__C__vcfR,
+  meta = c(
+    "##fileformat=VCFv4.0",
+    "##FILTER=<ID=PASS,Description=\"All filters passed\">",
+    "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Hard coded genotype\">",
+    "##contig=<ID=rand>",
+    "##contig=<ID=fixed>",
+    sprintf("##synthetic genetic data created by lmmsym on %s", out)
+  ),
+  fix = fix,
+  gt = gt
+)
+vcfR::write.vcf(vcf_obj, sprintf("%s.lmmsym.vcf.gz", out))
+
+message("Saving phenotype file")
+pheno <- data.frame(
+  IID = sample_names,
+  simulated_pheno = y
+)
+write.table(
+  pheno, sprintf("%s.symlmm.pheno", out),
+  row.names = FALSE, quote = FALSE
+)
+
+message("Saving covariate file")
+get_factor <- function(v) {
+  ifelse(any(v == 1), which(v == 1), 0)
+}
+start <- 1
+cov_f <- numeric(0)
+for (i in 1:n_cov) {
+  n_dummies <- n_levels_cov[[i]] - 1
+  end <- start + n_dummies - 1
+  mat <- matrix(cov_m[, start:end], ncol = n_dummies)
+  f_vec <- apply(mat, MARGIN = 1, get_factor)
+  cov_f <- cbind(cov_f, f_vec)
+  start <- end + 1
+}
+colnames(cov_f) <- sprintf("cov%s", 1:n_cov)
+covar <- data.frame(
+  IID = sample_names, cov_f
+)
+write.table(
+  covar, sprintf("%s.symlmm.covar", out),
+  row.names = FALSE, quote = FALSE
+)
+
+message("Saving quantitative covariate file")
+colnames(qcov_m) <- sprintf("qcov%s", 1:n_qcov)
+qcovar <- data.frame(IID = sample_names, qcov_m)
+write.table(
+  qcovar, sprintf("%s.symlmm.qcovar", out),
+  row.names = FALSE, quote = FALSE
+)
