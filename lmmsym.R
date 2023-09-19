@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2023 Saul Pierotti
+
 ################################################################################
 ################################################################################
 # lmmsym: a simple simulator of GWAS data with population structure
