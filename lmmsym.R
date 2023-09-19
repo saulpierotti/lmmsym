@@ -61,31 +61,31 @@ reflow_desc <- function(...) {
 }
 
 option_list <- list(
-  make_option(
+  optparse::make_option(
     "--seed",
     type = "integer",
     help = "Random seed for reproducibility",
     default = 1
   ),
-  make_option(
+  optparse::make_option(
     "--n_snps_rand",
     type = "integer",
     help = "Number of SNPs modeled as a random effect",
     default = 1e3
   ),
-  make_option(
+  optparse::make_option(
     "--n_snps_fixed",
     type = "integer",
     help = "Number of SNPs modeled as a fixed effect",
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--n_populations",
     type = "integer",
     help = "Number of sub-populations with distinct allele frequencies",
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--rand_snp_freq",
     type = "character",
     help = reflow_opt(
@@ -94,7 +94,7 @@ option_list <- list(
     ),
     default = "0.2,0.8"
   ),
-  make_option(
+  optparse::make_option(
     "--fixed_snp_freq",
     type = "character",
     help = reflow_opt(
@@ -103,7 +103,7 @@ option_list <- list(
     ),
     default = "0.8,0.2"
   ),
-  make_option(
+  optparse::make_option(
     "--n_samples",
     type = "character",
     help = reflow_opt(
@@ -112,7 +112,7 @@ option_list <- list(
     ),
     default = "1500,500"
   ),
-  make_option(
+  optparse::make_option(
     "--beta_fixed",
     type = "character",
     help = reflow_opt(
@@ -121,13 +121,13 @@ option_list <- list(
     ),
     default = "0.3,-0.3"
   ),
-  make_option(
+  optparse::make_option(
     "--intercept",
     type = "numeric",
     help = "Intercept of the phenotype",
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--ploidy",
     type = "integer",
     help = reflow_opt(
@@ -136,7 +136,7 @@ option_list <- list(
     ),
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--heritability",
     type = "numeric",
     help = reflow_opt(
@@ -145,7 +145,7 @@ option_list <- list(
     ),
     default = 0.8
   ),
-  make_option(
+  optparse::make_option(
     "--variance_scale",
     type = "numeric",
     help = reflow_opt(
@@ -155,13 +155,13 @@ option_list <- list(
     ),
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--n_qcov",
     type = "numeric",
     help = "Number of quantitative covariates",
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--beta_qcov",
     type = "character",
     help = reflow_opt(
@@ -171,7 +171,7 @@ option_list <- list(
     ),
     default = "2,-3"
   ),
-  make_option(
+  optparse::make_option(
     "--mean_qcov",
     type = "character",
     help = reflow_opt(
@@ -181,7 +181,7 @@ option_list <- list(
     ),
     default = "-2,3"
   ),
-  make_option(
+  optparse::make_option(
     "--sd_qcov",
     type = "character",
     help = reflow_opt(
@@ -191,13 +191,13 @@ option_list <- list(
     ),
     default = "0.2,0.3"
   ),
-  make_option(
+  optparse::make_option(
     "--n_cov",
     type = "numeric",
     help = "Number of covariates",
     default = 2
   ),
-  make_option(
+  optparse::make_option(
     "--n_levels_cov",
     type = "character",
     help = reflow_opt(
@@ -208,7 +208,7 @@ option_list <- list(
     ),
     default = "2,3"
   ),
-  make_option(
+  optparse::make_option(
     "--beta_cov",
     type = "character",
     help = reflow_opt(
@@ -220,7 +220,7 @@ option_list <- list(
     default = "3,5,2",
     meta = "beta_cov1_lev1,beta_cov1_lev2,beta_cov2_lev1,beta_cov2_lev2"
   ),
-  make_option(
+  optparse::make_option(
     "--out",
     type = "character",
     help = "Output name prefix",
@@ -251,8 +251,8 @@ description <- paste0(
   )
 )
 
-opt <- parse_args(
-  OptionParser(
+opt <- optparse::parse_args(
+  optparse::OptionParser(
     option_list = option_list,
     description = paste0(banner, description)
   )
