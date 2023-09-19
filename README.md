@@ -2,7 +2,7 @@
 
 This is a simple R script that simulates genetic dosage and phenotypes. It is possible to specify an arbitrary number of sub-populations, each with a dedicate allele frequency.
 Two chromosomes are simulated, one whose SNPs are modelled as fixed effects and one whose SNPs are modelled as random effects.
-The intended use of this script is to test linear mixed models implememntations for genetics.
+The intended use of this script is to test linear mixed models implementations for genetics.
 If the linear mixed model works properly, it should be able to correctly reconstruct the effect sizes of the fixed effect SNPs and the simulated random effect heritability.
 The output is produced in the form of a vcf file for the genotype, and plink-style files for the phenotype and covariates.
 
@@ -20,6 +20,8 @@ If you want to customise some parameters of the simulation, explore the availabl
 ```
 ./lmmsym.R --help
 ```
+
+## Parameters
 
 ```
 Usage: ./lmmsym.R [options]
