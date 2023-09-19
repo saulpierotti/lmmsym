@@ -19,6 +19,9 @@ If you want to customise some parameters of the simulation, explore the availabl
 
 ```
 ./lmmsym.R --help
+```
+
+```
 Usage: ./lmmsym.R [options]
 
 lmmsym: a simple simulator for GWAS data with population structure
