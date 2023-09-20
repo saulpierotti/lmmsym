@@ -77,7 +77,7 @@ option_list <- list(
     "--n_snps_fixed",
     type = "integer",
     help = "Number of SNPs modeled as a fixed effect",
-    default = 2
+    default = 5
   ),
   optparse::make_option(
     "--n_populations",
@@ -119,7 +119,7 @@ option_list <- list(
       "Comma-separated list of beta values for the fixed effect SNPs.",
       "Must be of length equal to 'n_snps_fixed'"
     ),
-    default = "0.3,-0.3"
+    default = "0.3,0,0,0,0"
   ),
   optparse::make_option(
     "--intercept",
@@ -506,6 +506,7 @@ ComplexHeatmap::Heatmap(
   use_raster = TRUE
 )
 ret <- dev.off()
+saveRDS(K, sprintf("%s.lmmsym.relmat.rds", out))
 
 
 message("Saving VCF of the genotypes")
