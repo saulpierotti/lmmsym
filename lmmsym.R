@@ -284,6 +284,9 @@ n_levels_cov <- as.integer(split_vector(opt[["n_levels_cov"]]))
 beta_cov <- as.integer(split_vector(opt[["beta_cov"]]))
 out <- opt[["out"]]
 
+log <- file(sprintf("%s.lmmsym.log", out), "w")
+sink(file = log, type = "message")
+
 message(banner)
 message("*** Parameters ***")
 for (param in names(opt)) {
