@@ -11,7 +11,7 @@ rand_snp_freq = 0.2,0.8
 fixed_snp_freq = 0.8,0.2
 n_samples = 1500,500
 beta_fixed = 0.3,0,0,0,0
-intercept = 2
+intercept = 20
 ploidy = 2
 heritability = 0.8
 variance_scale = 2
@@ -22,7 +22,7 @@ sd_qcov = 0.2,0.3
 n_cov = 2
 n_levels_cov = 2,3
 beta_cov = 3,5,2
-out = 20230920_171532
+out = 20230920_182610
 help = FALSE
 ***
 
@@ -50,19 +50,19 @@ Fitting mixed model
 
 *** It is important that the following estimates are accurate ***
 Mixed model
-Intercept estimated: 2.40106362865429 true: 2
-Slope estimated SNP 1: 0.34918829044343 true: 0.3
-Slope estimated SNP 2: 0.0442837777444562 true: 0
-Slope estimated SNP 3: -0.0262767237757949 true: 0
-Slope estimated SNP 4: -0.00470593200463798 true: 0
-Slope estimated SNP 5: -0.0131386305684686 true: 0
+Intercept estimated: 20.4010636286563 true: 20
+Slope estimated SNP 1: 0.349188290443349 true: 0.3
+Slope estimated SNP 2: 0.0442837777447104 true: 0
+Slope estimated SNP 3: -0.0262767237757022 true: 0
+Slope estimated SNP 4: -0.00470593200480842 true: 0
+Slope estimated SNP 5: -0.0131386305684989 true: 0
 ***
 
 Fitting linear model
 
 *** These estimates are expected to be inaccurate ***
 Linear model
-Intercept estimated: 1.82820686927218 true: 2
+Intercept estimated: 19.8282068692722 true: 20
 Slope estimated SNP 1: 0.584118280156848 true: 0.3
 Slope estimated SNP 2: 0.191690870669298 true: 0
 Slope estimated SNP 3: 0.167261216479075 true: 0

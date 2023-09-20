@@ -125,7 +125,7 @@ option_list <- list(
     "--intercept",
     type = "numeric",
     help = "Intercept of the phenotype",
-    default = 2
+    default = 20
   ),
   optparse::make_option(
     "--ploidy",
@@ -339,8 +339,8 @@ Z <- make_chromosome(rand_snp_freq, n_snps_rand)
 stopifnot(dim(Z) == c(n_samples_tot, n_snps_rand))
 
 message("Generating fixed effects SNPs")
-X <- make_chromosome(fixed_snp_freq, n_snps_fixed)
-stopifnot(dim(X) == c(n_samples_tot, n_snps_fixed))
+fixed_snps_mat <- make_chromosome(fixed_snp_freq, n_snps_fixed)
+stopifnot(dim(fixed_snps_mat) == c(n_samples_tot, n_snps_fixed))
 
 message("Scaling random effect SNPs")
 Z.p <- colMeans(Z)
@@ -382,7 +382,7 @@ stopifnot(dim(cov_m) == c(n_samples_tot, sum(n_levels_cov) - n_cov))
 
 message("Building final design matrix")
 intercept_col <- rep(1, n_samples_tot)
-X <- cbind(intercept_col, X, qcov_m, cov_m)
+X <- cbind(intercept_col, fixed_snps_mat, qcov_m, cov_m)
 snp_names <- sapply(
   1:n_snps_fixed,
   function(i) {
@@ -531,7 +531,7 @@ make_gt <- function(dosage_mat) {
   gt[dosage_mat == 2] <- "1/1"
   return(gt)
 }
-gt <- t(cbind(make_gt(Z), make_gt(X)))
+gt <- t(cbind(make_gt(Z), make_gt(fixed_snps_mat)))
 gt <- cbind("GT", gt)
 colnames(gt) <- c("FORMAT", sample_names)
 
