@@ -343,7 +343,8 @@ X <- make_chromosome(fixed_snp_freq, n_snps_fixed)
 stopifnot(dim(X) == c(n_samples_tot, n_snps_fixed))
 
 message("Scaling random effect SNPs")
-Z.std <- scale(Z)
+Z.p <- colMeans(Z)
+Z.std <- t((t(Z) - (2 * Z.p)) / sqrt(2 * Z.p * (1 - Z.p)))
 
 message("Computing relatedness matrix")
 K <- (Z.std %*% t(Z.std)) / n_snps_rand
